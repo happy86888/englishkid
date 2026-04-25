@@ -718,33 +718,33 @@ async function recommendVideos() {
   const catHint = state.videoCategory === 'songs' ? 'English nursery rhymes / kids songs (like Super Simple Songs, Pinkfong, CoComelon)'
     : state.videoCategory === 'stories' ? 'Short English cartoon episodes for kids (like Peppa Pig, Bluey, Maisy Mouse, Charlie and Lola)'
     : 'Educational English videos for kids (alphabet, numbers, phonics, vocabulary, like Alphablocks, Numberblocks, Gracie\'s Corner)';
-  const systemPrompt = 'You are an English learning content curator for children aged 7-10. Recommend 5 YouTube videos in the category: "' + cat.name + '" (' + catHint + '). Avoid these already-included videos: ' + existing + '. Output ONLY a JSON array (no markdown code fence, no other text), each item with: "title" (English title), "titleCn" (Chinese translation), "channel" (YouTube channel name), "reason" (why suitable, in Chinese, 15-25 words), "searchQuery" (what to search on YouTube to find it). Example: [{"title":"...","titleCn":"...","channel":"...","reason":"...","searchQuery":"..."}]';
+  const systemPrompt = 'You recommend YouTube videos for kids aged 7-10 learning English. Category: "' + cat.name + '" (' + catHint + '). Avoid these already-included: ' + existing + '. Reply with ONLY a JSON array, no other text, no markdown, no explanations. Each item must have these exact keys: title, titleCn, channel, reason, searchQuery. The reason must be in Traditional Chinese, 15-25 characters. Example output:\n[{"title":"ABC Song","titleCn":"字母歌","channel":"Super Simple Songs","reason":"經典字母歌，發音清楚","searchQuery":"ABC song super simple"}]\nReturn 5 items.';
 
   try {
     let reply;
-    const userMsg = [{ role: 'user', content: 'Please recommend 5 videos.' }];
+    const userMsg = [{ role: 'user', content: 'Recommend 5 videos. Reply with only the JSON array.' }];
     if (state.aiProvider === 'claude') reply = await callClaude(userMsg, systemPrompt);
     else if (state.aiProvider === 'gemini') reply = await callGemini(userMsg, systemPrompt);
     else reply = await callGroq(userMsg, systemPrompt);
 
-    const cleaned = reply.replace(/```json|```/g, '').trim();
-    const recs = JSON.parse(cleaned);
+    const recs = extractJSON(reply, 'array');
+    if (!Array.isArray(recs) || recs.length === 0) throw new Error('AI 沒有回傳有效的影片清單');
 
     let html = '<div style="padding:16px; background:white; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">' +
       '<div style="font-weight:700; margin-bottom:12px;">📋 AI 推薦的 ' + recs.length + ' 部影片</div>' +
       '<div class="small-text" style="margin-bottom:12px;">點影片標題會開啟 YouTube 搜尋，找到後複製網址中 v= 後的 ID，加進 videos.json 即可。</div>';
 
     recs.forEach((r, i) => {
-      const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(r.searchQuery);
+      const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(r.searchQuery || r.title || '');
       html += '<div style="padding:12px; border-top:1px solid #EFEFEC;">' +
         '<div style="font-weight:600; font-size:15px;">' +
           '<a href="' + searchUrl + '" target="_blank" style="color:#378ADD; text-decoration:none;">' +
-            (i+1) + '. ' + escapeHtml(r.title) + ' 🔍' +
+            (i+1) + '. ' + escapeHtml(r.title || '') + ' 🔍' +
           '</a>' +
         '</div>' +
-        '<div style="font-size:13px; color:#5F5E5A; margin:2px 0;">' + escapeHtml(r.titleCn) + ' · ' + escapeHtml(r.channel) + '</div>' +
+        '<div style="font-size:13px; color:#5F5E5A; margin:2px 0;">' + escapeHtml(r.titleCn || '') + ' · ' + escapeHtml(r.channel || '') + '</div>' +
         '<div style="font-size:12px; color:#854F0B; background:#FEF3E2; padding:6px 10px; border-radius:8px; margin-top:6px;">' +
-          '💡 ' + escapeHtml(r.reason) +
+          '💡 ' + escapeHtml(r.reason || '') +
         '</div>' +
       '</div>';
     });
@@ -759,8 +759,51 @@ async function recommendVideos() {
 
     result.innerHTML = html;
   } catch (err) {
-    result.innerHTML = '<div style="padding:16px; background:#FCEBEB; color:#A32D2D; border-radius:14px;">⚠️ AI 推薦失敗：' + escapeHtml(err.message) + '</div>';
+    result.innerHTML = '<div style="padding:16px; background:#FCEBEB; color:#A32D2D; border-radius:14px;">' +
+      '<div style="font-weight:600; margin-bottom:6px;">⚠️ AI 推薦失敗</div>' +
+      '<div style="font-size:13px;">' + escapeHtml(err.message) + '</div>' +
+      '<div style="font-size:12px; margin-top:8px; color:#5F5E5A;">建議切到設定頁試另一個 AI 服務（Groq 通常最穩定）</div>' +
+    '</div>';
   }
+}
+
+// 穩健的 JSON 抽取：處理 AI 可能在前後加文字、用 ```json 包起來等狀況
+function extractJSON(text, expectType) {
+  if (!text) throw new Error('AI 回覆是空的');
+  // 1. 移除常見的 markdown 程式碼圍欄
+  let cleaned = text.replace(/```json\s*|```\s*/g, '').trim();
+
+  // 2. 直接嘗試解析
+  try { return JSON.parse(cleaned); } catch(e) {}
+
+  // 3. 找出第一個 [ 或 { 跟最後一個 ] 或 } 之間的內容
+  const startChar = expectType === 'array' ? '[' : '{';
+  const endChar = expectType === 'array' ? ']' : '}';
+  const start = cleaned.indexOf(startChar);
+  const end = cleaned.lastIndexOf(endChar);
+  if (start >= 0 && end > start) {
+    const sliced = cleaned.substring(start, end + 1);
+    try { return JSON.parse(sliced); } catch(e) {}
+  }
+
+  // 4. 試另一種類型（有些 AI 會回 object 包 array）
+  const altStart = expectType === 'array' ? '{' : '[';
+  const altEnd = expectType === 'array' ? '}' : ']';
+  const aStart = cleaned.indexOf(altStart);
+  const aEnd = cleaned.lastIndexOf(altEnd);
+  if (aStart >= 0 && aEnd > aStart) {
+    try {
+      const obj = JSON.parse(cleaned.substring(aStart, aEnd + 1));
+      // 找 object 裡面是 array 的欄位
+      if (expectType === 'array' && typeof obj === 'object') {
+        for (const k of Object.keys(obj)) {
+          if (Array.isArray(obj[k])) return obj[k];
+        }
+      }
+    } catch(e) {}
+  }
+
+  throw new Error('AI 回覆不是有效的 JSON 格式。原始回覆：' + cleaned.substring(0, 100) + '...');
 }
 
 function renderVideoPlay() {
@@ -1065,8 +1108,7 @@ async function generateAiLevel() {
     if (state.aiProvider === 'claude') reply = await callClaude(userMsg, systemPrompt);
     else if (state.aiProvider === 'gemini') reply = await callGemini(userMsg, systemPrompt);
     else reply = await callGroq(userMsg, systemPrompt);
-    const cleaned = reply.replace(/```json|```/g, '').trim();
-    state.aiGenResult = JSON.parse(cleaned);
+    state.aiGenResult = extractJSON(reply, 'object');
   } catch (err) {
     alert('生成失敗：' + err.message);
   } finally {
@@ -1940,9 +1982,7 @@ async function generateReviewStory() {
       reply = await callGroq([{ role: 'user', content: 'Write a story using these words: ' + wordList }], systemPrompt);
     }
     // Parse JSON from reply
-    const cleaned = reply.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
-    state.reviewStory = parsed;
+    state.reviewStory = extractJSON(reply, 'object');
   } catch (err) {
     alert('產生失敗：' + err.message);
   } finally {
