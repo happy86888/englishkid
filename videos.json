@@ -1,0 +1,291 @@
+{
+  "categories": [
+    {
+      "id": "songs",
+      "name": "🎵 英文兒歌",
+      "desc": "適合一起唱跳，輕鬆學單字"
+    },
+    {
+      "id": "stories",
+      "name": "📺 動畫故事",
+      "desc": "短篇英文卡通，培養聽力"
+    },
+    {
+      "id": "lessons",
+      "name": "🎓 教學影片",
+      "desc": "字母、發音、句型練習"
+    }
+  ],
+  "videos": [
+    {
+      "id": "song1",
+      "category": "songs",
+      "youtubeId": "D0Ajq682yrA",
+      "title": "Baby Shark Dance",
+      "titleCn": "鯊魚寶寶之歌",
+      "level": "Easy",
+      "duration": "2:17",
+      "description": "經典兒歌，認識家庭成員：baby, mommy, daddy, grandma, grandpa",
+      "vocab": [["baby","寶寶"],["mommy","媽媽"],["daddy","爸爸"],["grandma","奶奶"],["grandpa","爺爺"],["shark","鯊魚"]],
+      "quiz": [
+        { "q": "What animal is in the song?", "qCn": "歌裡有什麼動物？", "options": ["Cat", "Shark", "Dog", "Fish"], "answer": 1 },
+        { "q": "Who is the oldest in the song?", "qCn": "歌裡誰最老？", "options": ["Baby", "Mommy", "Grandpa", "Daddy"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "song2",
+      "category": "songs",
+      "youtubeId": "BELlZKpi1Zs",
+      "title": "If You're Happy and You Know It",
+      "titleCn": "如果你很高興",
+      "level": "Easy",
+      "duration": "2:30",
+      "description": "經典互動兒歌，學習情緒和身體動作",
+      "vocab": [["happy","高興"],["clap","拍手"],["hands","手"],["stomp","跺腳"],["feet","腳"],["shout","大叫"]],
+      "quiz": [
+        { "q": "What do you do with your hands?", "qCn": "用手做什麼？", "options": ["Stomp", "Clap", "Wave", "Point"], "answer": 1 },
+        { "q": "What feeling is in the song?", "qCn": "歌裡是什麼情緒？", "options": ["Sad", "Angry", "Happy", "Tired"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "song3",
+      "category": "songs",
+      "youtubeId": "tkPFnDbWoNI",
+      "title": "Five Little Ducks",
+      "titleCn": "五隻小鴨",
+      "level": "Easy",
+      "duration": "3:15",
+      "description": "練習數字 1-5，學習簡單動詞",
+      "vocab": [["five","五"],["little","小"],["duck","鴨子"],["went","去了"],["away","離開"],["hill","山丘"]],
+      "quiz": [
+        { "q": "How many ducks are there?", "qCn": "有幾隻鴨子？", "options": ["Three", "Four", "Five", "Six"], "answer": 2 },
+        { "q": "What animals are in the song?", "qCn": "歌裡有什麼動物？", "options": ["Cats", "Ducks", "Cows", "Sheep"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "song4",
+      "category": "songs",
+      "youtubeId": "ZanHgPprl-0",
+      "title": "Old MacDonald Had a Farm",
+      "titleCn": "王老先生有塊地",
+      "level": "Easy",
+      "duration": "3:30",
+      "description": "農場動物大集合，學動物叫聲與名稱",
+      "vocab": [["farm","農場"],["cow","牛"],["pig","豬"],["duck","鴨"],["sheep","羊"],["horse","馬"]],
+      "quiz": [
+        { "q": "Where does Old MacDonald live?", "qCn": "王老先生住哪裡？", "options": ["City", "Forest", "Farm", "Beach"], "answer": 2 },
+        { "q": "Which animal says 'oink'?", "qCn": "什麼動物說 'oink'？", "options": ["Cow", "Pig", "Duck", "Sheep"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "song5",
+      "category": "songs",
+      "youtubeId": "rN0BQQT5wLo",
+      "title": "Wheels on the Bus",
+      "titleCn": "公車上的輪子",
+      "level": "Easy",
+      "duration": "2:50",
+      "description": "認識公車各部位，學動作動詞",
+      "vocab": [["wheels","輪子"],["bus","公車"],["round","圓"],["wipers","雨刷"],["doors","門"],["horn","喇叭"]],
+      "quiz": [
+        { "q": "What goes round and round?", "qCn": "什麼一直轉？", "options": ["Doors", "Wheels", "Wipers", "Horn"], "answer": 1 },
+        { "q": "Where are the wheels?", "qCn": "輪子在哪裡？", "options": ["Car", "Train", "Bus", "Plane"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "song6",
+      "category": "songs",
+      "youtubeId": "yCjJyiqpAuU",
+      "title": "Twinkle Twinkle Little Star",
+      "titleCn": "一閃一閃小星星",
+      "level": "Easy",
+      "duration": "2:10",
+      "description": "經典搖籃曲，學習形容詞",
+      "vocab": [["twinkle","閃爍"],["star","星星"],["wonder","好奇"],["high","高"],["world","世界"],["diamond","鑽石"]],
+      "quiz": [
+        { "q": "What is in the sky?", "qCn": "天上有什麼？", "options": ["Cloud", "Star", "Moon", "Sun"], "answer": 1 },
+        { "q": "What is the star compared to?", "qCn": "星星像什麼？", "options": ["Sun", "Moon", "Diamond", "Light"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "story1",
+      "category": "stories",
+      "youtubeId": "2bMNRzhi06Y",
+      "title": "Peppa Pig - Muddy Puddles",
+      "titleCn": "佩佩豬 - 泥巴水坑",
+      "level": "Easy-Medium",
+      "duration": "5:30",
+      "description": "佩佩豬最愛跳泥巴水坑！經典英國發音動畫",
+      "vocab": [["puddle","水坑"],["muddy","泥濘的"],["jump","跳"],["boots","靴子"],["rain","雨"],["mommy","媽媽"]],
+      "quiz": [
+        { "q": "What does Peppa love to jump in?", "qCn": "佩佩喜歡跳什麼？", "options": ["Pools", "Muddy puddles", "Beds", "Cars"], "answer": 1 },
+        { "q": "What does Peppa wear?", "qCn": "佩佩穿什麼？", "options": ["Shoes", "Slippers", "Boots", "Sandals"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "story2",
+      "category": "stories",
+      "youtubeId": "mlKePNa4WSg",
+      "title": "Bluey - The Magic Xylophone",
+      "titleCn": "妙妙犬布麗-魔法木琴",
+      "level": "Medium",
+      "duration": "7:00",
+      "description": "澳洲超紅的家庭動畫，劇情溫馨有趣",
+      "vocab": [["magic","魔法"],["xylophone","木琴"],["freeze","結凍"],["unfreeze","解凍"],["dad","爸爸"],["sister","姐妹"]],
+      "quiz": [
+        { "q": "What does the xylophone do?", "qCn": "木琴有什麼魔力？", "options": ["Sing", "Freeze people", "Make food", "Fly"], "answer": 1 },
+        { "q": "Who plays with Bluey?", "qCn": "誰跟布麗一起玩？", "options": ["Mom", "Dad", "Friend", "Teacher"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "story3",
+      "category": "stories",
+      "youtubeId": "T36nCAPQ8Yk",
+      "title": "Pinkfong - Brown Bear, Brown Bear",
+      "titleCn": "棕熊棕熊你看到什麼",
+      "level": "Easy",
+      "duration": "2:45",
+      "description": "經典英文繪本動畫，學顏色與動物",
+      "vocab": [["bear","熊"],["brown","棕色"],["red","紅"],["yellow","黃"],["blue","藍"],["see","看見"]],
+      "quiz": [
+        { "q": "What color is the bear?", "qCn": "熊是什麼顏色？", "options": ["Black", "White", "Brown", "Gray"], "answer": 2 },
+        { "q": "What is the bear doing?", "qCn": "熊在做什麼？", "options": ["Eating", "Looking", "Sleeping", "Running"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "story4",
+      "category": "stories",
+      "youtubeId": "jKxvtFttWFQ",
+      "title": "The Very Hungry Caterpillar",
+      "titleCn": "好餓的毛毛蟲",
+      "level": "Easy-Medium",
+      "duration": "5:00",
+      "description": "經典繪本動畫，學食物、星期、數字",
+      "vocab": [["hungry","餓"],["caterpillar","毛毛蟲"],["butterfly","蝴蝶"],["apple","蘋果"],["Monday","星期一"],["ate","吃了"]],
+      "quiz": [
+        { "q": "What does the caterpillar become?", "qCn": "毛毛蟲變成什麼？", "options": ["Bird", "Butterfly", "Bee", "Worm"], "answer": 1 },
+        { "q": "How does the caterpillar feel?", "qCn": "毛毛蟲感覺如何？", "options": ["Sleepy", "Happy", "Hungry", "Angry"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "story5",
+      "category": "stories",
+      "youtubeId": "5_ZSFp2Zjqk",
+      "title": "Cocomelon - Yes Yes Vegetables",
+      "titleCn": "Cocomelon - 蔬菜歌",
+      "level": "Easy",
+      "duration": "3:20",
+      "description": "鼓勵孩子吃蔬菜的歡樂動畫",
+      "vocab": [["vegetable","蔬菜"],["carrot","紅蘿蔔"],["broccoli","花椰菜"],["yummy","好吃"],["yes","是"],["healthy","健康"]],
+      "quiz": [
+        { "q": "What is the song about?", "qCn": "歌曲是關於什麼？", "options": ["Fruits", "Vegetables", "Meat", "Candy"], "answer": 1 },
+        { "q": "What word is repeated?", "qCn": "重複的字是？", "options": ["No", "Yes", "Maybe", "Stop"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "story6",
+      "category": "stories",
+      "youtubeId": "1VNcNTBAa-Y",
+      "title": "Maisy Mouse - Bedtime",
+      "titleCn": "小鼠波波 - 睡覺時間",
+      "level": "Easy",
+      "duration": "5:00",
+      "description": "可愛小老鼠的日常故事，發音清楚慢速",
+      "vocab": [["bedtime","睡覺時間"],["mouse","老鼠"],["pajamas","睡衣"],["tooth","牙齒"],["brush","刷"],["sleep","睡覺"]],
+      "quiz": [
+        { "q": "Who is the main character?", "qCn": "主角是誰？", "options": ["Cat", "Mouse", "Dog", "Bird"], "answer": 1 },
+        { "q": "What time of day is it?", "qCn": "什麼時間？", "options": ["Morning", "Lunchtime", "Bedtime", "Afternoon"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "lesson1",
+      "category": "lessons",
+      "youtubeId": "BELlZKpi1Zs",
+      "title": "ABC Phonics Song",
+      "titleCn": "ABC 字母發音歌",
+      "level": "Easy",
+      "duration": "3:00",
+      "description": "認識 A-Z 字母與發音，自然發音法基礎",
+      "vocab": [["alphabet","字母"],["letter","字母"],["sound","聲音"],["apple","蘋果"],["ball","球"],["cat","貓"]],
+      "quiz": [
+        { "q": "How many letters in the alphabet?", "qCn": "字母有幾個？", "options": ["20", "24", "26", "30"], "answer": 2 },
+        { "q": "What letter does 'apple' start with?", "qCn": "apple 開頭的字母？", "options": ["B", "A", "P", "E"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "lesson2",
+      "category": "lessons",
+      "youtubeId": "rWnpsxbN-bM",
+      "title": "Numbers 1-20",
+      "titleCn": "數字 1 到 20",
+      "level": "Easy",
+      "duration": "4:00",
+      "description": "練習英文數字，含發音與例句",
+      "vocab": [["one","一"],["five","五"],["ten","十"],["fifteen","十五"],["twenty","二十"],["count","數"]],
+      "quiz": [
+        { "q": "How do you say '15' in English?", "qCn": "15 英文怎麼說？", "options": ["Five", "Fifty", "Fifteen", "Five-teen"], "answer": 2 },
+        { "q": "What comes after 'nineteen'?", "qCn": "十九的下一個是？", "options": ["Eighteen", "Twenty", "Ten", "Nine"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "lesson3",
+      "category": "lessons",
+      "youtubeId": "tkPFnDbWoNI",
+      "title": "Colors Song",
+      "titleCn": "顏色歌",
+      "level": "Easy",
+      "duration": "3:30",
+      "description": "認識常見顏色與發音",
+      "vocab": [["color","顏色"],["red","紅"],["blue","藍"],["green","綠"],["yellow","黃"],["purple","紫"]],
+      "quiz": [
+        { "q": "What color is the sun?", "qCn": "太陽是什麼顏色？", "options": ["Blue", "Yellow", "Green", "Purple"], "answer": 1 },
+        { "q": "What color is grass?", "qCn": "草是什麼顏色？", "options": ["Red", "Blue", "Green", "Yellow"], "answer": 2 }
+      ]
+    },
+    {
+      "id": "lesson4",
+      "category": "lessons",
+      "youtubeId": "fkDfb-Cr3iQ",
+      "title": "Days of the Week",
+      "titleCn": "星期歌",
+      "level": "Easy",
+      "duration": "2:30",
+      "description": "Sunday 到 Saturday 七天唱起來",
+      "vocab": [["Sunday","星期日"],["Monday","星期一"],["Friday","星期五"],["weekend","週末"],["week","週"],["day","日"]],
+      "quiz": [
+        { "q": "How many days in a week?", "qCn": "一週有幾天？", "options": ["5", "6", "7", "8"], "answer": 2 },
+        { "q": "What day is the weekend?", "qCn": "週末是哪幾天？", "options": ["Mon-Fri", "Sat-Sun", "Wed-Thu", "All days"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "lesson5",
+      "category": "lessons",
+      "youtubeId": "bELdydn3ujo",
+      "title": "What's Your Name?",
+      "titleCn": "你叫什麼名字？",
+      "level": "Easy",
+      "duration": "3:15",
+      "description": "學習自我介紹的基本句型",
+      "vocab": [["name","名字"],["hello","你好"],["nice","很好"],["meet","見面"],["my","我的"],["your","你的"]],
+      "quiz": [
+        { "q": "How do you greet someone?", "qCn": "怎麼跟人打招呼？", "options": ["Goodbye", "Hello", "Sorry", "Please"], "answer": 1 },
+        { "q": "What do you say after meeting?", "qCn": "見面後說什麼？", "options": ["Goodbye", "Nice to meet you", "Sorry", "Thank you"], "answer": 1 }
+      ]
+    },
+    {
+      "id": "lesson6",
+      "category": "lessons",
+      "youtubeId": "frN3nvhIHUk",
+      "title": "Body Parts Song",
+      "titleCn": "身體部位歌",
+      "level": "Easy",
+      "duration": "3:00",
+      "description": "Head, shoulders, knees, and toes!",
+      "vocab": [["head","頭"],["shoulder","肩膀"],["knee","膝蓋"],["toe","腳趾"],["eye","眼睛"],["ear","耳朵"]],
+      "quiz": [
+        { "q": "Where are your knees?", "qCn": "膝蓋在哪？", "options": ["Arms", "Legs", "Head", "Hands"], "answer": 1 },
+        { "q": "What is on your head?", "qCn": "頭上有什麼？", "options": ["Toes", "Knees", "Ears", "Knees"], "answer": 2 }
+      ]
+    }
+  ]
+}
