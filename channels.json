@@ -1,0 +1,22 @@
+{
+  "channels": {
+    "songs": [
+      { "id": "UCLsooMJoIpl_7ux2jvdPB-Q", "name": "Super Simple Songs", "level": "Easy" },
+      { "id": "UCcdwLMPsaU2ezNSJU1nFoBQ", "name": "Pinkfong Baby Shark", "level": "Easy" },
+      { "id": "UCbCmjCuTUZos6Inko4u57UQ", "name": "Cocomelon", "level": "Easy" },
+      { "id": "UC2vlpIcHvNjOlqyaHQOocxQ", "name": "The Singing Walrus", "level": "Easy" }
+    ],
+    "stories": [
+      { "id": "UCAOtE1V7Ots4DjM8JLlrYgg", "name": "Peppa Pig Official", "level": "Easy-Medium" },
+      { "id": "UCJ2DXqB-_3WCSkOYMc7OUyQ", "name": "Bluey Official", "level": "Medium" },
+      { "id": "UCb6lZ8WigJBSXGkF1MnSwzg", "name": "Maisy Mouse Official", "level": "Easy" },
+      { "id": "UC6daTXyc-Z7nSjGgWPfZ4Vw", "name": "Gecko's Garage", "level": "Easy-Medium" }
+    ],
+    "lessons": [
+      { "id": "UCT8YuQ-_pyD7-aMJ4SUv6vQ", "name": "Alphablocks Official", "level": "Easy" },
+      { "id": "UCu_AY63DByaTUbZ5PXP4cdQ", "name": "Numberblocks Official", "level": "Easy" },
+      { "id": "UCqFzWxSCi39LnW1JKFR3efg", "name": "Sesame Street", "level": "Easy" },
+      { "id": "UCsooa4yRKGN_zEE8iknghZA", "name": "TED-Ed", "level": "Hard" }
+    ]
+  }
+}

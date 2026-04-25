@@ -1,6 +1,7 @@
 // ============ STATE ============
 let THEMES = [], PETS = [], CHARACTERS = [];
 let VIDEO_CATEGORIES = [], VIDEOS = [];
+let CHANNELS = {};
 
 let state = {
   view: 'map',
@@ -58,7 +59,13 @@ let state = {
   aiGenResult: null,
   // Chat visualization
   chatLoading: false,
-  chatJustReplied: false
+  chatJustReplied: false,
+  // YouTube API
+  youtubeKey: '',
+  ytFetchedVideos: [],
+  ytFetching: false,
+  ytFetchError: null,
+  ytHidden: []
 };
 
 // ============ STORAGE ============
@@ -84,6 +91,12 @@ try {
   if (vb) state.vocabBook = JSON.parse(vb);
   const vc = localStorage.getItem('ea-video-completed');
   if (vc) state.videoCompleted = JSON.parse(vc);
+  const ytk = localStorage.getItem('ea-youtube-key');
+  if (ytk) state.youtubeKey = ytk;
+  const yth = localStorage.getItem('ea-yt-hidden');
+  if (yth) state.ytHidden = JSON.parse(yth);
+  const ytf = localStorage.getItem('ea-yt-fetched');
+  if (ytf) state.ytFetchedVideos = JSON.parse(ytf);
 } catch(e) {}
 
 function saveProgress() { try { localStorage.setItem('ea-progress-v2', JSON.stringify(state.progress)); } catch(e) {} }
@@ -93,6 +106,9 @@ function saveGroqKey() { try { localStorage.setItem('ea-groq-key', state.groqKey
 function saveProvider() { try { localStorage.setItem('ea-provider', state.aiProvider); } catch(e) {} }
 function saveVocabBook() { try { localStorage.setItem('ea-vocab-book', JSON.stringify(state.vocabBook)); } catch(e) {} }
 function saveVideoCompleted() { try { localStorage.setItem('ea-video-completed', JSON.stringify(state.videoCompleted)); } catch(e) {} }
+function saveYoutubeKey() { try { localStorage.setItem('ea-youtube-key', state.youtubeKey); } catch(e) {} }
+function saveYtHidden() { try { localStorage.setItem('ea-yt-hidden', JSON.stringify(state.ytHidden)); } catch(e) {} }
+function saveYtFetched() { try { localStorage.setItem('ea-yt-fetched', JSON.stringify(state.ytFetchedVideos)); } catch(e) {} }
 function saveStats() {
   try {
     localStorage.setItem('ea-stats', JSON.stringify({
@@ -676,35 +692,134 @@ function renderVideos() {
     '<button class="video-tab ' + (state.videoCategory === c.id ? 'active' : '') + '" data-vidcat="' + c.id + '">' + c.name + '</button>'
   ).join('');
   const cat = VIDEO_CATEGORIES.find(c => c.id === state.videoCategory);
-  const vids = VIDEOS.filter(v => v.category === state.videoCategory);
-  const vidsHtml = vids.map(v => {
-    const done = state.videoCompleted[v.id];
+
+  // 精選影片
+  const curatedVids = VIDEOS.filter(v => v.category === state.videoCategory);
+  // YouTube 抓的，過濾掉隱藏的
+  const ytVids = state.ytFetchedVideos.filter(v => v.category === state.videoCategory && !state.ytHidden.includes(v.youtubeId));
+
+  const renderCard = (v, isYt) => {
+    const done = state.videoCompleted[v.id || v.youtubeId];
     const thumb = 'https://img.youtube.com/vi/' + v.youtubeId + '/mqdefault.jpg';
-    return '<div class="video-card ' + (done ? 'completed' : '') + '" data-vid="' + v.id + '">' +
+    return '<div class="video-card ' + (done ? 'completed' : '') + '" data-vid="' + (v.id || v.youtubeId) + '" data-vid-source="' + (isYt ? 'yt' : 'curated') + '">' +
+      (isYt ? '<button class="video-hide-btn" data-yt-hide="' + v.youtubeId + '" title="隱藏這部影片">✕</button>' : '') +
       '<img class="video-thumb" src="' + thumb + '" alt="' + escapeHtml(v.title) + '" loading="lazy">' +
       '<div class="video-card-body">' +
         '<div class="video-card-title">' + escapeHtml(v.title) + '</div>' +
-        '<div class="video-card-cn">' + escapeHtml(v.titleCn) + '</div>' +
+        '<div class="video-card-cn">' + escapeHtml(v.titleCn || v.channel || '') + '</div>' +
         '<div class="video-card-meta">' +
-          '<span class="video-tag">' + v.level + '</span>' +
-          '<span>⏱ ' + v.duration + '</span>' +
+          '<span class="video-tag">' + (v.level || 'Easy') + '</span>' +
+          (v.duration ? '<span>⏱ ' + v.duration + '</span>' : '') +
+          (isYt ? '<span class="video-tag" style="background:#E6F1FB; color:#1E5A8B;">🆕 新</span>' : '') +
           (done ? '<span class="video-tag done">✓ 看過</span>' : '') +
         '</div>' +
       '</div>' +
     '</div>';
-  }).join('');
+  };
+
+  const curatedHtml = curatedVids.map(v => renderCard(v, false)).join('');
+  const ytHtml = ytVids.map(v => renderCard(v, true)).join('');
+
+  // YouTube 抓影片區塊
+  const channels = CHANNELS[state.videoCategory] || [];
+  const hasChannels = channels.length > 0;
+  const hasYtKey = !!state.youtubeKey;
+
+  let ytSection = '';
+  if (hasChannels) {
+    ytSection = '<div style="margin-top:24px; padding:16px; background:linear-gradient(135deg,#E6F1FB,#FEF3E2); border-radius:14px;">' +
+      '<div style="font-weight:700; margin-bottom:6px;">📡 從 YouTube 抓最新影片</div>' +
+      '<div class="small-text" style="margin-bottom:10px;">從這 ' + channels.length + ' 個安全頻道抓最新影片：' +
+        channels.map(c => c.name).join('、') +
+      '</div>' +
+      (hasYtKey
+        ? '<button class="btn btn-small" id="yt-fetch" ' + (state.ytFetching ? 'disabled' : '') + '>' +
+            (state.ytFetching ? '⏳ 抓取中...' : '🔄 抓最新影片') +
+          '</button> ' +
+          (ytVids.length > 0 ? '<span class="small-text">已抓 ' + ytVids.length + ' 部</span>' : '')
+        : '<div style="font-size:13px; color:#854F0B;">⚠️ 需要先到 <b>⚙️ 設定</b> 設定 YouTube API Key</div>'
+      ) +
+      (state.ytFetchError ? '<div style="margin-top:10px; padding:10px; background:#FCEBEB; color:#A32D2D; border-radius:8px; font-size:13px;">⚠️ ' + escapeHtml(state.ytFetchError) + '</div>' : '') +
+    '</div>';
+  }
+
   return '<div class="screen">' +
     '<h2 style="margin-bottom:6px;">🎬 影片區</h2>' +
     '<div class="hint" style="text-align:left;">' + (cat ? cat.desc : '') + '</div>' +
     '<div class="video-tabs">' + cats + '</div>' +
-    '<div class="video-grid">' + vidsHtml + '</div>' +
-    '<div style="margin-top:24px; padding:16px; background:linear-gradient(135deg,#FEF3E2,#FFE5D9); border-radius:14px;">' +
+    (curatedVids.length > 0 ? '<div style="font-weight:600; font-size:14px; margin-bottom:8px; color:#5F5E5A;">⭐ 精選影片</div><div class="video-grid">' + curatedHtml + '</div>' : '') +
+    (ytVids.length > 0 ? '<div style="font-weight:600; font-size:14px; margin: 20px 0 8px; color:#5F5E5A;">🆕 來自 YouTube 的新影片 <span class="small-text" style="font-weight:400;">點 ✕ 可隱藏不喜歡的</span></div><div class="video-grid">' + ytHtml + '</div>' : '') +
+    ytSection +
+    '<div style="margin-top:16px; padding:14px; background:linear-gradient(135deg,#FEF3E2,#FFE5D9); border-radius:14px;">' +
       '<div style="font-weight:700; margin-bottom:6px;">✨ 想看更多影片？</div>' +
       '<div class="small-text" style="margin-bottom:10px;">讓 AI 推薦適合的新影片，家長確認後可以加到 videos.json</div>' +
       '<button class="btn btn-small" id="ai-recommend-videos">✨ 請 AI 推薦影片</button>' +
     '</div>' +
     '<div id="ai-rec-result" style="margin-top:14px;"></div>' +
   '</div>';
+}
+
+async function fetchYouTubeVideos() {
+  if (!state.youtubeKey) { alert('請先到 ⚙️ 設定 設定 YouTube API Key'); return; }
+  const cat = state.videoCategory;
+  const channels = CHANNELS[cat] || [];
+  if (channels.length === 0) { alert('這個分類沒有設定頻道'); return; }
+
+  state.ytFetching = true;
+  state.ytFetchError = null;
+  render();
+
+  try {
+    const allVideos = [];
+    // 從每個頻道抓最新 5 部
+    for (const ch of channels) {
+      try {
+        // Step 1: 用 search API 找頻道最新影片
+        const searchUrl = 'https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=' + ch.id + '&maxResults=5&order=date&type=video&safeSearch=strict&videoEmbeddable=true&key=' + encodeURIComponent(state.youtubeKey);
+        const res = await fetch(searchUrl);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        if (data.items) {
+          for (const item of data.items) {
+            allVideos.push({
+              id: 'yt-' + item.id.videoId,
+              youtubeId: item.id.videoId,
+              category: cat,
+              title: item.snippet.title,
+              titleCn: '',
+              channel: ch.name,
+              level: ch.level,
+              duration: '',
+              description: item.snippet.description.substring(0, 100),
+              publishedAt: item.snippet.publishedAt,
+              vocab: [],
+              quiz: []
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Fetch failed for channel', ch.name, e.message);
+      }
+    }
+
+    if (allVideos.length === 0) {
+      throw new Error('沒有抓到任何影片，可能是 API key 錯誤或額度用完');
+    }
+
+    // 按發布時間排序，取最新的 18 部
+    allVideos.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
+    const newest = allVideos.slice(0, 18);
+
+    // 合併到既有的（同類別取代，其他類別保留）
+    state.ytFetchedVideos = state.ytFetchedVideos.filter(v => v.category !== cat).concat(newest);
+    saveYtFetched();
+    state.ytFetching = false;
+    render();
+  } catch (err) {
+    state.ytFetching = false;
+    state.ytFetchError = err.message;
+    render();
+  }
 }
 
 async function recommendVideos() {
@@ -817,26 +932,31 @@ function renderVideoPlay() {
 
   let body = '';
   if (state.videoStep === 'watch') {
+    const hasVocab = v.vocab && v.vocab.length > 0;
+    const hasQuiz = v.quiz && v.quiz.length > 0;
     body = '<div class="video-iframe-wrap"><iframe id="yt-iframe" src="' + ytUrl + '" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>' +
       '<div class="video-controls-bar">' +
         '<span class="video-speed-label">速度：</span>' +
         speedBtns +
       '</div>' +
       '<div class="video-info">' +
-        '<div class="video-info-title">' + escapeHtml(v.title) + ' <span class="small-text">(' + escapeHtml(v.titleCn) + ')</span></div>' +
-        '<div class="small-text" style="margin-bottom:8px;">' + escapeHtml(v.description) + '</div>' +
-        '<div style="font-weight:600; font-size:13px; margin-top:12px;">📝 重點單字（點 ⭐ 收藏到單字本）</div>' +
-        '<div class="video-vocab-list">' +
-          v.vocab.map(vc => {
-            const inBook = state.vocabBook.some(x => x.en === vc[0]);
-            return '<div class="video-vocab-chip ' + (inBook ? 'saved' : '') + '" data-vocab-en="' + escapeHtml(vc[0]) + '" data-vocab-cn="' + escapeHtml(vc[1]) + '" data-vocab-source="影片：' + escapeHtml(v.title) + '">' +
-              '<b>' + vc[0] + '</b> ' + vc[1] + ' ' + (inBook ? '★' : '☆') +
-            '</div>';
-          }).join('') +
-        '</div>' +
+        '<div class="video-info-title">' + escapeHtml(v.title) + (v.titleCn ? ' <span class="small-text">(' + escapeHtml(v.titleCn) + ')</span>' : '') + '</div>' +
+        '<div class="small-text" style="margin-bottom:8px;">' + escapeHtml(v.description || v.channel || '') + '</div>' +
+        (hasVocab
+          ? '<div style="font-weight:600; font-size:13px; margin-top:12px;">📝 重點單字（點 ⭐ 收藏到單字本）</div>' +
+            '<div class="video-vocab-list">' +
+              v.vocab.map(vc => {
+                const inBook = state.vocabBook.some(x => x.en === vc[0]);
+                return '<div class="video-vocab-chip ' + (inBook ? 'saved' : '') + '" data-vocab-en="' + escapeHtml(vc[0]) + '" data-vocab-cn="' + escapeHtml(vc[1]) + '" data-vocab-source="影片：' + escapeHtml(v.title) + '">' +
+                  '<b>' + vc[0] + '</b> ' + vc[1] + ' ' + (inBook ? '★' : '☆') +
+                '</div>';
+              }).join('') +
+            '</div>'
+          : '<div class="small-text" style="margin-top:12px;">💡 這是 YouTube 抓的新影片，沒有預設單字測驗，看完按返回即可</div>'
+        ) +
         '<div style="text-align:center; margin-top:20px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">' +
           '<button class="btn btn-secondary" id="back-videos">← 返回</button>' +
-          '<button class="btn" id="video-do-quiz">看完了 · 來測驗 →</button>' +
+          (hasQuiz ? '<button class="btn" id="video-do-quiz">看完了 · 來測驗 →</button>' : '<button class="btn btn-success" id="video-mark-done">看完了 ✓</button>') +
         '</div>' +
       '</div>';
   } else {
@@ -1010,6 +1130,25 @@ function renderSettings() {
       '</div>'
     ) +
 
+    '<h3 style="margin:20px 0 8px;">📺 YouTube API（選用）</h3>' +
+    '<div class="hint" style="text-align:left;">設定後，影片頁可從安全頻道白名單抓最新影片。</div>' +
+    '<div class="api-setup" style="margin-top:8px;">' +
+      '<div style="font-weight:700; margin-bottom:6px;">🔑 YouTube Data API Key</div>' +
+      '<input type="password" id="youtube-key-input" placeholder="貼上 YouTube API key" value="' + escapeHtml(state.youtubeKey) + '">' +
+      '<button class="btn btn-small" id="save-youtube-key">儲存</button>' +
+      '<div class="api-setup-help">' +
+        '到 <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> 建立專案 → 啟用 YouTube Data API v3 → 建立 API 金鑰<br>' +
+        '免費額度每天 10,000 quota（約 100 次抓取，給家裡用很夠）<br>' +
+        '影片只會從以下安全頻道抓：Super Simple Songs、Peppa Pig、Bluey、Alphablocks 等' +
+      '</div>' +
+    '</div>' +
+
+    (state.ytHidden.length > 0
+      ? '<h3 style="margin:20px 0 8px;">🙈 已隱藏的 YouTube 影片 (' + state.ytHidden.length + ')</h3>' +
+        '<div class="hint" style="text-align:left;">這些影片不會在影片區顯示。</div>' +
+        '<button class="btn btn-secondary btn-small" id="reset-yt-hidden">↩️ 復原所有隱藏的影片</button>'
+      : '') +
+
     '<h3 style="margin:20px 0 8px;">💾 資料管理</h3>' +
     '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
       '<button class="btn btn-secondary btn-small" id="export-data">📥 匯出我的資料</button>' +
@@ -1022,7 +1161,7 @@ function renderSettings() {
     '<div style="background:#F8F8F5; padding:14px; border-radius:12px; font-size:13px; line-height:1.7; color:#5F5E5A;">' +
       'English Adventure 英文冒險島<br>' +
       '專為國小 1-3 年級設計的英文學習網站<br>' +
-      '70 關闖關 · 18 部影片 · 單字本 · AI 對話<br>' +
+      '70 關闖關 · 18 部精選影片 + YouTube 抓取 · 單字本 · AI 對話<br>' +
     '</div>' +
 
   '</div>';
@@ -1576,9 +1715,20 @@ function attachHandlers() {
   if (aiRec) aiRec.addEventListener('click', recommendVideos);
   // Videos - card click
   document.querySelectorAll('[data-vid]').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      // 如果點到隱藏按鈕，不要進入影片
+      if (e.target.classList.contains('video-hide-btn')) return;
       sfxClick();
-      state.currentVideo = VIDEOS.find(v => v.id === el.dataset.vid);
+      const vidId = el.dataset.vid;
+      const source = el.dataset.vidSource;
+      let v;
+      if (source === 'yt') {
+        v = state.ytFetchedVideos.find(x => x.id === vidId || x.youtubeId === vidId);
+      } else {
+        v = VIDEOS.find(x => x.id === vidId);
+      }
+      if (!v) return;
+      state.currentVideo = v;
       state.videoStep = 'watch';
       state.videoSpeed = 1;
       state.videoQuizIdx = 0;
@@ -1588,6 +1738,21 @@ function attachHandlers() {
       render();
     });
   });
+  // YouTube hide buttons
+  document.querySelectorAll('[data-yt-hide]').forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const ytId = b.dataset.ytHide;
+      if (!state.ytHidden.includes(ytId)) {
+        state.ytHidden.push(ytId);
+        saveYtHidden();
+      }
+      render();
+    });
+  });
+  // YouTube fetch button
+  const ytFetchBtn = document.getElementById('yt-fetch');
+  if (ytFetchBtn) ytFetchBtn.addEventListener('click', fetchYouTubeVideos);
   // Video player back
   const backVideos = document.getElementById('back-videos');
   if (backVideos) backVideos.addEventListener('click', () => { state.view = 'videos'; render(); });
@@ -1597,6 +1762,17 @@ function attachHandlers() {
     state.videoStep = 'quiz';
     state.videoQuizIdx = 0;
     state.videoQuizScore = 0;
+    render();
+  });
+  // YouTube fetched videos: no quiz, just mark done
+  const markDone = document.getElementById('video-mark-done');
+  if (markDone) markDone.addEventListener('click', () => {
+    const v = state.currentVideo;
+    if (!state.videoCompleted[v.id || v.youtubeId]) {
+      state.videoCompleted[v.id || v.youtubeId] = { score: 0, total: 0, date: Date.now() };
+      saveVideoCompleted();
+    }
+    state.view = 'videos';
     render();
   });
   const rewatch = document.getElementById('video-rewatch');
@@ -1737,6 +1913,20 @@ function attachHandlers() {
     state.groqKey = document.getElementById('groq-key-input').value.trim();
     saveGroqKey();
     alert('✓ Groq 金鑰已儲存');
+  });
+  const saveYtKey = document.getElementById('save-youtube-key');
+  if (saveYtKey) saveYtKey.addEventListener('click', () => {
+    state.youtubeKey = document.getElementById('youtube-key-input').value.trim();
+    saveYoutubeKey();
+    alert('✓ YouTube API Key 已儲存');
+  });
+  const resetYtHidden = document.getElementById('reset-yt-hidden');
+  if (resetYtHidden) resetYtHidden.addEventListener('click', () => {
+    if (confirm('確定要復原所有隱藏的 YouTube 影片嗎？')) {
+      state.ytHidden = [];
+      saveYtHidden();
+      render();
+    }
   });
   const exportBtn = document.getElementById('export-data');
   if (exportBtn) exportBtn.addEventListener('click', exportData);
@@ -2040,9 +2230,14 @@ function importData(e) {
 // ============ LOAD ============
 async function loadLevels() {
   try {
-    const [resL, resV] = await Promise.all([fetch('levels.json'), fetch('videos.json')]);
+    const [resL, resV, resC] = await Promise.all([
+      fetch('levels.json'),
+      fetch('videos.json'),
+      fetch('channels.json')
+    ]);
     if (!resL.ok) throw new Error('levels.json HTTP ' + resL.status);
     if (!resV.ok) throw new Error('videos.json HTTP ' + resV.status);
+    // channels.json 是新的，舊安裝可能沒有，可選
     const data = await resL.json();
     const vdata = await resV.json();
     THEMES = data.themes;
@@ -2050,6 +2245,12 @@ async function loadLevels() {
     CHARACTERS = data.characters;
     VIDEO_CATEGORIES = vdata.categories;
     VIDEOS = vdata.videos;
+    if (resC.ok) {
+      try {
+        const cdata = await resC.json();
+        CHANNELS = cdata.channels || {};
+      } catch(e) { CHANNELS = {}; }
+    }
     if (THEMES.length > 0) state.expandedThemes[THEMES[0].id] = true;
     render();
   } catch (e) {

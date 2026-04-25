@@ -527,12 +527,25 @@ input { font-family: inherit; }
   background: white; border-radius: 16px; overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.06); cursor: pointer;
   transition: transform 0.2s; border: 2px solid transparent;
+  position: relative;
 }
 .video-card:hover {
   transform: translateY(-4px); border-color: #378ADD;
   box-shadow: 0 8px 24px rgba(55,138,221,0.15);
 }
 .video-card.completed { border-color: #97C459; }
+.video-hide-btn {
+  position: absolute; top: 6px; right: 6px;
+  background: rgba(0,0,0,0.6); color: white;
+  border: none; border-radius: 50%;
+  width: 28px; height: 28px; font-size: 14px;
+  cursor: pointer; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.video-hide-btn:hover {
+  background: rgba(226,75,74,0.9);
+}
 .video-thumb {
   width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
   background: #F8F8F5;
