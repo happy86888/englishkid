@@ -51,7 +51,14 @@ let state = {
   vocabBook: [],
   // Daily review
   reviewStory: null,
-  reviewLoading: false
+  reviewLoading: false,
+  // AI generated level
+  aiGenTopic: '',
+  aiGenLoading: false,
+  aiGenResult: null,
+  // Chat visualization
+  chatLoading: false,
+  chatJustReplied: false
 };
 
 // ============ STORAGE ============
@@ -215,6 +222,7 @@ function render() {
     case 'vocabBook': html += renderVocabBook(); break;
     case 'review': html += renderReview(); break;
     case 'settings': html += renderSettings(); break;
+    case 'aiGen': html += renderAiGen(); break;
   }
   app.innerHTML = html;
   attachHandlers();
@@ -243,6 +251,7 @@ function renderNav() {
     tab('vocabBook','📔','單字本') +
     tab('review','📰','複習') +
     tab('chat','💬','AI對話') +
+    tab('aiGen','🪄','AI出題') +
     tab('stats','📊','統計') +
     tab('settings','⚙️','設定') +
   '</div>';
@@ -381,8 +390,18 @@ function renderSpeak(lvl, useChinese) {
   return '<div class="hint">' + (useChinese ? '跟著念這個句子 · 第 ' + (state.speakIdx + 1) + ' / ' + total + ' 句' : 'Repeat · ' + (state.speakIdx + 1) + ' / ' + total) + '</div>' +
     '<div class="speak-box">' +
       '<div class="target-sentence">' + sentence + '</div>' +
-      '<button class="btn btn-secondary btn-small" id="listen-btn">🔊 ' + (useChinese ? '聽範例' : 'Listen') + '</button>' +
-      (supported ? '<button class="mic-btn" id="mic-btn">🎤</button>' : '<div class="hint">' + (useChinese ? '此瀏覽器不支援錄音' : 'Recording not supported') + '</div>') +
+      '<div class="speak-buttons-row">' +
+        '<button class="speak-listen-btn" id="listen-btn" title="' + (useChinese ? '聽範例' : 'Listen') + '">' +
+          '<span style="font-size:32px;">🔊</span>' +
+          '<span style="font-size:12px; margin-top:4px;">' + (useChinese ? '聽範例' : 'Listen') + '</span>' +
+        '</button>' +
+        (supported
+          ? '<button class="mic-btn" id="mic-btn" title="' + (useChinese ? '按麥克風開始錄音' : 'Tap to record') + '">' +
+              '<span style="font-size:32px;">🎤</span>' +
+              '<span style="font-size:12px; margin-top:4px;">' + (useChinese ? '錄音' : 'Record') + '</span>' +
+            '</button>'
+          : '<div class="hint">' + (useChinese ? '此瀏覽器不支援錄音' : 'Recording not supported') + '</div>') +
+      '</div>' +
       '<div id="speak-result"></div>' +
     '</div>' +
     '<div class="controls"><button class="btn btn-secondary" id="skip">' + (useChinese ? '我念好了' : 'Done') + ' →</button></div>';
@@ -679,7 +698,69 @@ function renderVideos() {
     '<div class="hint" style="text-align:left;">' + (cat ? cat.desc : '') + '</div>' +
     '<div class="video-tabs">' + cats + '</div>' +
     '<div class="video-grid">' + vidsHtml + '</div>' +
+    '<div style="margin-top:24px; padding:16px; background:linear-gradient(135deg,#FEF3E2,#FFE5D9); border-radius:14px;">' +
+      '<div style="font-weight:700; margin-bottom:6px;">✨ 想看更多影片？</div>' +
+      '<div class="small-text" style="margin-bottom:10px;">讓 AI 推薦適合的新影片，家長確認後可以加到 videos.json</div>' +
+      '<button class="btn btn-small" id="ai-recommend-videos">✨ 請 AI 推薦影片</button>' +
+    '</div>' +
+    '<div id="ai-rec-result" style="margin-top:14px;"></div>' +
   '</div>';
+}
+
+async function recommendVideos() {
+  const hasKey = (state.aiProvider === 'claude' && state.apiKey) || (state.aiProvider === 'gemini' && state.geminiKey) || (state.aiProvider === 'groq' && state.groqKey);
+  if (!hasKey) { alert('請先到 ⚙️ 設定 設定 AI 金鑰'); return; }
+  const result = document.getElementById('ai-rec-result');
+  result.innerHTML = '<div style="padding:20px; text-align:center; color:#5F5E5A;">✨ AI 正在挑選適合的影片...</div>';
+
+  const cat = VIDEO_CATEGORIES.find(c => c.id === state.videoCategory);
+  const existing = VIDEOS.filter(v => v.category === state.videoCategory).map(v => v.title).join(', ');
+  const catHint = state.videoCategory === 'songs' ? 'English nursery rhymes / kids songs (like Super Simple Songs, Pinkfong, CoComelon)'
+    : state.videoCategory === 'stories' ? 'Short English cartoon episodes for kids (like Peppa Pig, Bluey, Maisy Mouse, Charlie and Lola)'
+    : 'Educational English videos for kids (alphabet, numbers, phonics, vocabulary, like Alphablocks, Numberblocks, Gracie\'s Corner)';
+  const systemPrompt = 'You are an English learning content curator for children aged 7-10. Recommend 5 YouTube videos in the category: "' + cat.name + '" (' + catHint + '). Avoid these already-included videos: ' + existing + '. Output ONLY a JSON array (no markdown code fence, no other text), each item with: "title" (English title), "titleCn" (Chinese translation), "channel" (YouTube channel name), "reason" (why suitable, in Chinese, 15-25 words), "searchQuery" (what to search on YouTube to find it). Example: [{"title":"...","titleCn":"...","channel":"...","reason":"...","searchQuery":"..."}]';
+
+  try {
+    let reply;
+    const userMsg = [{ role: 'user', content: 'Please recommend 5 videos.' }];
+    if (state.aiProvider === 'claude') reply = await callClaude(userMsg, systemPrompt);
+    else if (state.aiProvider === 'gemini') reply = await callGemini(userMsg, systemPrompt);
+    else reply = await callGroq(userMsg, systemPrompt);
+
+    const cleaned = reply.replace(/```json|```/g, '').trim();
+    const recs = JSON.parse(cleaned);
+
+    let html = '<div style="padding:16px; background:white; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">' +
+      '<div style="font-weight:700; margin-bottom:12px;">📋 AI 推薦的 ' + recs.length + ' 部影片</div>' +
+      '<div class="small-text" style="margin-bottom:12px;">點影片標題會開啟 YouTube 搜尋，找到後複製網址中 v= 後的 ID，加進 videos.json 即可。</div>';
+
+    recs.forEach((r, i) => {
+      const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(r.searchQuery);
+      html += '<div style="padding:12px; border-top:1px solid #EFEFEC;">' +
+        '<div style="font-weight:600; font-size:15px;">' +
+          '<a href="' + searchUrl + '" target="_blank" style="color:#378ADD; text-decoration:none;">' +
+            (i+1) + '. ' + escapeHtml(r.title) + ' 🔍' +
+          '</a>' +
+        '</div>' +
+        '<div style="font-size:13px; color:#5F5E5A; margin:2px 0;">' + escapeHtml(r.titleCn) + ' · ' + escapeHtml(r.channel) + '</div>' +
+        '<div style="font-size:12px; color:#854F0B; background:#FEF3E2; padding:6px 10px; border-radius:8px; margin-top:6px;">' +
+          '💡 ' + escapeHtml(r.reason) +
+        '</div>' +
+      '</div>';
+    });
+
+    html += '<div style="margin-top:14px; padding:12px; background:#F8F8F5; border-radius:10px; font-size:12px; color:#5F5E5A; line-height:1.7;">' +
+      '<b>📝 加進 videos.json 的步驟：</b><br>' +
+      '1. 點 🔍 找到 YouTube 影片<br>' +
+      '2. 複製網址中 watch?v= 後面那串字（例如 dQw4w9WgXcQ）<br>' +
+      '3. 編輯 videos.json，仿照其他影片的格式加新項目<br>' +
+      '4. 上傳 videos.json 到 GitHub' +
+    '</div></div>';
+
+    result.innerHTML = html;
+  } catch (err) {
+    result.innerHTML = '<div style="padding:16px; background:#FCEBEB; color:#A32D2D; border-radius:14px;">⚠️ AI 推薦失敗：' + escapeHtml(err.message) + '</div>';
+  }
 }
 
 function renderVideoPlay() {
@@ -905,6 +986,95 @@ function renderSettings() {
 }
 
 
+// ============ AI GENERATE LEVEL ============
+function renderAiGen() {
+  const hasKey = (state.aiProvider === 'claude' && state.apiKey) || (state.aiProvider === 'gemini' && state.geminiKey) || (state.aiProvider === 'groq' && state.groqKey);
+  if (!hasKey) {
+    return '<div class="screen">' +
+      '<h2 style="margin-bottom:8px;">🪄 AI 出題</h2>' +
+      '<div class="hint" style="text-align:left;">輸入主題，AI 幫你生成一個關卡（故事 + 單字 + 測驗）</div>' +
+      '<div style="padding:20px; background:#FEF3E2; border-radius:14px; text-align:center;">⚠️ 需要先到 <b>⚙️ 設定</b> 設定 AI 金鑰</div>' +
+    '</div>';
+  }
+  const suggestions = ['恐龍', '太空', '海底世界', '魔法', '機器人', '海盜', '公主', '消防員', '農場', '足球', '蝴蝶', '火車'];
+  const chips = suggestions.map(s => '<button class="topic-chip" data-topic="' + escapeHtml(s) + '">' + s + '</button>').join('');
+
+  let resultHtml = '';
+  if (state.aiGenLoading) {
+    resultHtml = '<div class="loading">✨ AI 正在編寫關卡...</div>';
+  } else if (state.aiGenResult) {
+    const r = state.aiGenResult;
+    const story = r.story.map(s => '<div style="margin-bottom:6px;">' + escapeHtml(s) + '</div>').join('');
+    const vocab = (r.vocab || []).map(v => '<div class="video-vocab-chip">' + escapeHtml(v[0]) + ' = ' + escapeHtml(v[1]) + '</div>').join('');
+    const quizOpts = r.quiz.options.map((o, i) =>
+      '<div style="padding:8px; background:' + (i === r.quiz.answer ? '#EAF3DE' : 'white') + '; border:1.5px solid ' + (i === r.quiz.answer ? '#97C459' : '#EFEFEC') + '; border-radius:8px; margin-bottom:4px;">' +
+        (i === r.quiz.answer ? '✓ ' : '') + escapeHtml(o) +
+      '</div>'
+    ).join('');
+    resultHtml = '<div class="gen-result-card">' +
+      '<div style="font-size:32px; text-align:center;">' + (r.icon || '✨') + '</div>' +
+      '<div style="font-weight:700; font-size:18px; text-align:center; margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
+      '<div class="small-text" style="text-align:center; margin-bottom:14px;">' + escapeHtml(r.titleCn || '') + '</div>' +
+
+      '<div style="font-weight:600; font-size:13px; margin-bottom:6px;">📖 故事</div>' +
+      '<div style="padding:14px; background:#FEF3E2; border-radius:10px; font-size:16px; line-height:1.8; margin-bottom:14px;">' + story + '</div>' +
+
+      '<div style="font-weight:600; font-size:13px; margin-bottom:6px;">📝 單字</div>' +
+      '<div class="video-vocab-list" style="margin-bottom:14px;">' + vocab + '</div>' +
+
+      '<div style="font-weight:600; font-size:13px; margin-bottom:6px;">🎯 測驗</div>' +
+      '<div style="padding:12px; background:#F8F8F5; border-radius:10px; margin-bottom:6px;">' +
+        '<div style="font-weight:500; margin-bottom:8px;">Q: ' + escapeHtml(r.quiz.q) + (r.quiz.qCn ? ' <span class="small-text">(' + escapeHtml(r.quiz.qCn) + ')</span>' : '') + '</div>' +
+        quizOpts +
+      '</div>' +
+
+      '<div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; justify-content:center;">' +
+        '<button class="btn btn-secondary btn-small" id="ai-gen-speak">🔊 朗讀</button>' +
+        '<button class="btn btn-secondary btn-small" id="ai-gen-regen">✦ 換一個</button>' +
+        '<button class="btn btn-small" id="ai-gen-copy-json">📋 複製 JSON 加進關卡</button>' +
+      '</div>' +
+      '<div class="small-text" style="text-align:center; margin-top:8px;">複製後可以加進 levels.json 變成永久關卡</div>' +
+    '</div>';
+  }
+
+  return '<div class="screen ai-gen-screen">' +
+    '<h2 style="margin-bottom:8px;">🪄 AI 出題</h2>' +
+    '<div class="hint" style="text-align:left;">輸入你想要的主題，AI 立刻幫你生成一個小故事 + 單字 + 測驗。</div>' +
+    '<input type="text" class="topic-input" id="ai-gen-topic" placeholder="例如：恐龍、太空、足球..." value="' + escapeHtml(state.aiGenTopic) + '">' +
+    '<div class="topic-suggestions">' + chips + '</div>' +
+    '<div style="text-align:center; margin-top:12px;">' +
+      '<button class="btn" id="ai-gen-go">✨ 生成關卡</button>' +
+    '</div>' +
+    resultHtml +
+  '</div>';
+}
+
+async function generateAiLevel() {
+  const topic = document.getElementById('ai-gen-topic').value.trim();
+  if (!topic) { alert('請輸入主題'); return; }
+  state.aiGenTopic = topic;
+  state.aiGenLoading = true;
+  state.aiGenResult = null;
+  render();
+
+  const systemPrompt = 'You are an English teacher creating learning content for a 7-10 year old child in Taiwan. Generate a level about the given topic. Output ONLY a JSON object (no markdown fences, no other text) with this exact structure: {"icon": "single emoji", "title": "Short English title (3-5 words)", "titleCn": "中文標題", "story": ["sentence 1.", "sentence 2.", "sentence 3.", "sentence 4."], "vocab": [["word","中文"], ["word","中文"], ["word","中文"], ["word","中文"], ["word","中文"]], "quiz": {"q": "Question in English", "qCn": "中文問題", "options": ["option A", "option B", "option C", "option D"], "answer": 0}}. Rules: story has 4-5 simple sentences (5-8 words each), vocab has 5 key words from the story with Chinese translation, quiz answer is the index 0-3 of correct option.';
+
+  try {
+    let reply;
+    const userMsg = [{ role: 'user', content: 'Topic: ' + topic + '. Generate the level now.' }];
+    if (state.aiProvider === 'claude') reply = await callClaude(userMsg, systemPrompt);
+    else if (state.aiProvider === 'gemini') reply = await callGemini(userMsg, systemPrompt);
+    else reply = await callGroq(userMsg, systemPrompt);
+    const cleaned = reply.replace(/```json|```/g, '').trim();
+    state.aiGenResult = JSON.parse(cleaned);
+  } catch (err) {
+    alert('生成失敗：' + err.message);
+  } finally {
+    state.aiGenLoading = false;
+    render();
+  }
+}
+
 function renderChatMenu() {
   const charsHtml = CHARACTERS.map(c => '<div class="character-card" data-char="' + c.id + '">' +
     '<div class="character-icon">' + c.icon + '</div>' +
@@ -928,28 +1098,134 @@ function getGreeting(charId) {
     leo: 'Hi! I am Leo. What is your name?',
     mimi: 'Hi! I am Mimi. How are you today?',
     rex: 'Hi! I am Rex. Want to hear a joke?',
-    speedy: 'Vroom vroom! I am Speedy! Do you like fast cars?'
+    speedy: 'Vroom vroom! I am Speedy! Do you like fast cars?',
+    chichi: 'Hi! I am ChiChi. I want to learn Chinese! Can you teach me?'
   };
   return greetings[charId] || 'Hi!';
+}
+
+// ============ EMOJI / MOOD DETECTION ============
+const KEYWORD_EMOJIS = {
+  // animals
+  'cat': '🐱', 'dog': '🐶', 'bird': '🐦', 'fish': '🐟', 'rabbit': '🐰', 'lion': '🦁',
+  'tiger': '🐯', 'bear': '🐻', 'panda': '🐼', 'pig': '🐷', 'cow': '🐮', 'horse': '🐴',
+  'monkey': '🐵', 'elephant': '🐘', 'snake': '🐍', 'turtle': '🐢', 'frog': '🐸',
+  'duck': '🦆', 'chicken': '🐔', 'sheep': '🐑', 'whale': '🐳', 'dolphin': '🐬',
+  'butterfly': '🦋', 'bee': '🐝', 'spider': '🕷️', 'penguin': '🐧',
+  // food
+  'apple': '🍎', 'banana': '🍌', 'cake': '🎂', 'pizza': '🍕', 'ice cream': '🍦',
+  'cookie': '🍪', 'bread': '🍞', 'milk': '🥛', 'water': '💧', 'juice': '🧃',
+  'rice': '🍚', 'noodle': '🍜', 'sushi': '🍣', 'burger': '🍔', 'fries': '🍟',
+  'egg': '🥚', 'cheese': '🧀', 'meat': '🍖', 'fruit': '🍓', 'vegetable': '🥕',
+  'candy': '🍬', 'chocolate': '🍫', 'donut': '🍩', 'sandwich': '🥪',
+  // weather/nature
+  'sun': '☀️', 'rain': '🌧️', 'snow': '❄️', 'cloud': '☁️', 'star': '⭐',
+  'moon': '🌙', 'flower': '🌸', 'tree': '🌳', 'beach': '🏖️', 'mountain': '⛰️',
+  'ocean': '🌊', 'fire': '🔥', 'rainbow': '🌈',
+  // toys/games
+  'ball': '⚽', 'toy': '🧸', 'game': '🎮', 'book': '📚', 'music': '🎵',
+  'car': '🚗', 'bike': '🚲', 'train': '🚂', 'plane': '✈️', 'boat': '⛵',
+  'truck': '🚚', 'bus': '🚌', 'rocket': '🚀',
+  // family/people
+  'mom': '👩', 'dad': '👨', 'baby': '👶', 'family': '👨‍👩‍👧', 'friend': '🧑‍🤝‍🧑',
+  'school': '🏫', 'teacher': '👩‍🏫', 'home': '🏠', 'park': '🏞️',
+  // activities
+  'swim': '🏊', 'run': '🏃', 'dance': '💃', 'sing': '🎤', 'sleep': '😴',
+  'eat': '🍴', 'drink': '🥤', 'play': '🎮',
+  // emotions/abstract
+  'love': '❤️', 'happy': '😊', 'birthday': '🎉', 'gift': '🎁', 'magic': '✨'
+};
+
+function detectEmojis(text) {
+  const lower = text.toLowerCase();
+  const found = new Set();
+  // sort by length desc to match longer phrases first
+  const keys = Object.keys(KEYWORD_EMOJIS).sort((a, b) => b.length - a.length);
+  for (const k of keys) {
+    const re = new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 's?\\b', 'i');
+    if (re.test(lower)) {
+      found.add(KEYWORD_EMOJIS[k]);
+      if (found.size >= 4) break;
+    }
+  }
+  return [...found];
+}
+
+function detectMood(text) {
+  const t = text.toLowerCase();
+  // Question
+  if (t.includes('?')) return { emoji: '🤔', name: 'curious' };
+  // Excitement
+  if (text.includes('!') || /\b(wow|yay|cool|awesome|amazing|great|fantastic)\b/i.test(t)) return { emoji: '😄', name: 'excited' };
+  // Surprise
+  if (/\b(really|wow|whoa|oh)\b/i.test(t)) return { emoji: '😮', name: 'surprised' };
+  // Encouragement / tip
+  if (/\b(good|nice|well done|try|let's|let us)\b/i.test(t)) return { emoji: '💡', name: 'encouraging' };
+  // Joke / silly
+  if (/\b(haha|funny|silly|joke|laugh)\b/i.test(t)) return { emoji: '😆', name: 'funny' };
+  // Default
+  return { emoji: '😊', name: 'friendly' };
 }
 
 function renderChat() {
   const char = state.currentChar;
   const supported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+
+  // Determine character status
+  let avatarClass = '';
+  let statusText = '';
+  let bubble = '';
+  if (state.chatLoading) {
+    avatarClass = 'thinking';
+    statusText = '✨ ' + char.name + ' is thinking...';
+    bubble = '<div class="chat-thought-bubble">💭</div>';
+  } else if (state.chatJustReplied) {
+    avatarClass = 'happy';
+    const lastMsg = state.chatHistory[state.chatHistory.length - 1];
+    if (lastMsg && lastMsg.role === 'assistant') {
+      const mood = detectMood(lastMsg.content);
+      statusText = char.name + ' is ' + mood.name;
+      bubble = '<div class="chat-thought-bubble">' + mood.emoji + '</div>';
+    }
+  } else {
+    statusText = 'Type or speak to start chatting!';
+  }
+
+  // Detect topic emojis from recent conversation (last 4 messages)
+  const recentText = state.chatHistory.slice(-4).map(m => m.content).join(' ');
+  const sceneEmojis = detectEmojis(recentText);
+
   let msgsHtml = state.chatHistory.map((m, i) => {
     if (m.role === 'user') return '<div class="msg-row user"><div class="msg user">' + escapeHtml(m.content) + '</div></div>';
-    return '<div class="msg-row"><div class="msg ai">' + escapeHtml(m.content) + '</div><button class="msg-speak" data-msg-idx="' + i + '" title="再聽一次">🔊</button></div>';
+    const mood = detectMood(m.content);
+    const emojis = detectEmojis(m.content);
+    const emojiBlock = emojis.length ? '<div class="msg-emojis">' + emojis.map(e => '<span class="msg-emoji">' + e + '</span>').join('') + '</div>' : '';
+    return '<div class="msg-row">' +
+      '<div class="msg ai">' +
+        '<span class="msg-mood">' + mood.emoji + '</span>' + escapeHtml(m.content) +
+        emojiBlock +
+      '</div>' +
+      '<button class="msg-speak" data-msg-idx="' + i + '" title="再聽一次">🔊</button>' +
+    '</div>';
   }).join('');
+
   if (state.chatHistory.length === 0) {
     const greeting = getGreeting(char.id);
-    msgsHtml = '<div class="msg-row"><div class="msg ai">' + greeting + '</div><button class="msg-speak" data-greet="1" title="再聽一次">🔊</button></div>';
+    const mood = detectMood(greeting);
+    msgsHtml = '<div class="msg-row"><div class="msg ai">' +
+      '<span class="msg-mood">' + mood.emoji + '</span>' + greeting +
+      '</div><button class="msg-speak" data-greet="1" title="再聽一次">🔊</button></div>';
   }
+
   return '<div class="chat-screen">' +
     '<button class="back-btn" id="back-chat-menu">← 換朋友</button>' +
-    '<div style="text-align:center; margin-bottom:12px;">' +
-      '<div style="font-size:48px; animation: bobble 2s infinite;">' + char.icon + '</div>' +
-      '<div style="font-weight:700; font-size:17px;">' + char.name + '</div>' +
+    '<div class="chat-character-display">' +
+      bubble +
+      '<div class="chat-character-avatar ' + avatarClass + '">' + char.icon + '</div>' +
+      '<div class="chat-character-name">' + char.name + '</div>' +
+      '<div class="chat-character-status">' + statusText + '</div>' +
     '</div>' +
+    (sceneEmojis.length >= 2 ? '<div class="chat-scene"><div class="chat-scene-icons">' + sceneEmojis.join(' ') + '</div><div class="chat-scene-label">📖 你們在聊到的東西</div></div>' : '') +
     '<div class="chat-window" id="chat-window">' + msgsHtml + '</div>' +
     '<div class="chat-input-row">' +
       '<input type="text" class="chat-input" id="chat-input" placeholder="Type in English... (用英文打字)" autocomplete="off">' +
@@ -1253,6 +1529,9 @@ function attachHandlers() {
   document.querySelectorAll('[data-vidcat]').forEach(el => {
     el.addEventListener('click', () => { state.videoCategory = el.dataset.vidcat; render(); });
   });
+  // Videos - AI recommend
+  const aiRec = document.getElementById('ai-recommend-videos');
+  if (aiRec) aiRec.addEventListener('click', recommendVideos);
   // Videos - card click
   document.querySelectorAll('[data-vid]').forEach(el => {
     el.addEventListener('click', () => {
@@ -1423,6 +1702,35 @@ function attachHandlers() {
   if (importBtn) importBtn.addEventListener('click', () => document.getElementById('import-file').click());
   const importFile = document.getElementById('import-file');
   if (importFile) importFile.addEventListener('change', importData);
+
+  // AI Generate Level
+  document.querySelectorAll('[data-topic]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.getElementById('ai-gen-topic').value = b.dataset.topic;
+      generateAiLevel();
+    });
+  });
+  const aiGenGo = document.getElementById('ai-gen-go');
+  if (aiGenGo) aiGenGo.addEventListener('click', generateAiLevel);
+  const aiGenTopicInput = document.getElementById('ai-gen-topic');
+  if (aiGenTopicInput) aiGenTopicInput.addEventListener('keydown', e => { if (e.key === 'Enter') generateAiLevel(); });
+  const aiGenSpeak = document.getElementById('ai-gen-speak');
+  if (aiGenSpeak) aiGenSpeak.addEventListener('click', () => {
+    if (state.aiGenResult) speak(state.aiGenResult.story.join(' '), 0.85);
+  });
+  const aiGenRegen = document.getElementById('ai-gen-regen');
+  if (aiGenRegen) aiGenRegen.addEventListener('click', generateAiLevel);
+  const aiGenCopy = document.getElementById('ai-gen-copy-json');
+  if (aiGenCopy) aiGenCopy.addEventListener('click', () => {
+    if (!state.aiGenResult) return;
+    const json = JSON.stringify(state.aiGenResult, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      alert('✓ JSON 已複製！\n\n貼到 levels.json 任一個主題的 levels 陣列就會變成永久關卡。');
+    }).catch(() => {
+      // Fallback: show in prompt
+      prompt('複製這段 JSON：', json);
+    });
+  });
 }
 
 // ============ RECOGNITION ============
@@ -1515,14 +1823,12 @@ async function sendChat() {
   if (!hasKey) { alert('請先到 ⚙️ 設定 設定 AI 金鑰'); return; }
   input.value = '';
   state.chatHistory.push({ role: 'user', content: text });
+  state.chatLoading = true;
+  state.chatJustReplied = false;
   render();
 
   const win = document.getElementById('chat-window');
-  const loading = document.createElement('div');
-  loading.className = 'msg-row';
-  loading.innerHTML = '<div class="msg ai">...</div>';
-  win.appendChild(loading);
-  win.scrollTop = win.scrollHeight;
+  if (win) win.scrollTop = win.scrollHeight;
 
   try {
     let reply;
@@ -1534,11 +1840,16 @@ async function sendChat() {
       reply = await callGroq(state.chatHistory, state.currentChar.system);
     }
     state.chatHistory.push({ role: 'assistant', content: reply });
+    state.chatLoading = false;
+    state.chatJustReplied = true;
     setTimeout(() => speak(reply, 0.9), 200);
     render();
     const w = document.getElementById('chat-window');
     if (w) w.scrollTop = w.scrollHeight;
+    // Reset justReplied flag after animation
+    setTimeout(() => { state.chatJustReplied = false; }, 1500);
   } catch (err) {
+    state.chatLoading = false;
     state.chatHistory.push({ role: 'assistant', content: '⚠️ 錯誤：' + err.message });
     render();
   }

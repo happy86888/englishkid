@@ -665,3 +665,144 @@ input { font-family: inherit; }
   .nav-tabs { gap: 4px; }
   .nav-tab { padding: 10px 6px; font-size: 12px; min-width: 70px; }
 }
+
+/* ============ SPEAK BUTTONS ROW ============ */
+.speak-buttons-row {
+  display: flex; gap: 16px; justify-content: center; align-items: center;
+  margin: 20px 0;
+}
+.speak-listen-btn {
+  width: 90px; height: 90px; border-radius: 50%;
+  background: linear-gradient(135deg, #FAC775, #F5A623);
+  color: white; border: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: inherit; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(245,166,35,0.3);
+  transition: all 0.2s;
+}
+.speak-listen-btn:hover { transform: scale(1.05); }
+.speak-listen-btn:active { transform: scale(0.95); }
+
+/* Make mic-btn match new styling with label */
+.mic-btn {
+  width: 90px; height: 90px; flex-direction: column;
+}
+
+/* ============ CHAT VISUALIZATIONS ============ */
+.chat-character-display {
+  text-align: center;
+  padding: 20px 0 16px;
+  position: relative;
+}
+.chat-character-avatar {
+  font-size: 80px;
+  display: inline-block;
+  position: relative;
+  transition: transform 0.3s;
+}
+.chat-character-avatar.thinking {
+  animation: thinking-bounce 1s infinite;
+}
+.chat-character-avatar.talking {
+  animation: talking-shake 0.4s infinite;
+}
+.chat-character-avatar.happy {
+  animation: happy-bounce 0.6s ease-out;
+}
+@keyframes thinking-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes talking-shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-2deg) scale(1.02); }
+  75% { transform: rotate(2deg) scale(1.02); }
+}
+@keyframes happy-bounce {
+  0% { transform: scale(1) rotate(0); }
+  30% { transform: scale(1.2) rotate(-10deg); }
+  60% { transform: scale(1.1) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.chat-thought-bubble {
+  position: absolute; top: -8px; right: 30%;
+  background: white; padding: 6px 12px; border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 18px;
+  animation: bubble-pop 0.3s ease-out;
+}
+.chat-thought-bubble::after {
+  content: ''; position: absolute; bottom: -6px; left: 16px;
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid white;
+}
+@keyframes bubble-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.chat-character-name { font-weight: 700; font-size: 17px; margin-top: 8px; }
+.chat-character-status { font-size: 12px; color: #5F5E5A; margin-top: 4px; min-height: 16px; }
+
+/* Detected emoji popup in messages */
+.msg-emojis {
+  display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;
+}
+.msg-emoji {
+  font-size: 24px; padding: 4px 8px;
+  background: white; border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  animation: emoji-pop 0.4s ease-out;
+}
+@keyframes emoji-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Mood indicator on AI messages */
+.msg-mood {
+  display: inline-block; font-size: 18px; margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* Scene/topic illustration above chat */
+.chat-scene {
+  text-align: center; padding: 14px;
+  background: linear-gradient(135deg, #FEF3E2, #FFE5D9);
+  border-radius: 14px; margin-bottom: 12px;
+}
+.chat-scene-icons { font-size: 32px; letter-spacing: 4px; }
+.chat-scene-label { font-size: 12px; color: #5F5E5A; margin-top: 4px; }
+
+/* ============ AI GENERATE LEVEL ============ */
+.ai-gen-screen { padding: 20px; }
+.topic-suggestions {
+  display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0;
+}
+.topic-chip {
+  padding: 8px 14px; background: white;
+  border: 1.5px solid #D3D1C7; border-radius: 20px;
+  font-size: 14px; cursor: pointer;
+  transition: all 0.15s;
+}
+.topic-chip:hover {
+  background: #FEF3E2; border-color: #FAC775;
+  transform: translateY(-2px);
+}
+.topic-input {
+  width: 100%; padding: 14px; font-size: 16px;
+  border: 2px solid #D3D1C7; border-radius: 12px;
+  font-family: inherit;
+}
+.topic-input:focus {
+  outline: none; border-color: #378ADD;
+  box-shadow: 0 0 0 3px rgba(55,138,221,0.1);
+}
+.gen-result-card {
+  background: white; border-radius: 16px; padding: 20px;
+  margin-top: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  animation: slideUp 0.4s;
+}

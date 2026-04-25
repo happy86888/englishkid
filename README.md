@@ -154,6 +154,31 @@
 
 **找 youtubeId 的方法**：YouTube 網址 `https://www.youtube.com/watch?v=ABC123` 中的 `ABC123` 就是 ID。
 
+**讓 AI 幫你推薦影片**：到網站「🎬 影片」頁面最下方，點「✨ 請 AI 推薦影片」，AI 會根據你目前看的分類推薦 5 部新影片，附上 YouTube 搜尋連結。確認過內容適合後，照上面格式加進 `videos.json` 即可。
+
+### 🎯 適合 7-10 歲的優質 YouTube 頻道（家長精選清單）
+
+**兒歌類**
+- [Super Simple Songs](https://www.youtube.com/@SuperSimpleSongs) — 最推薦，發音清楚、節奏簡單
+- [Pinkfong Baby Shark Official](https://www.youtube.com/@Pinkfong) — 經典兒歌
+- [The Singing Walrus](https://www.youtube.com/@TheSingingWalrus) — 語言教學歌曲
+
+**動畫故事類**
+- [Peppa Pig - Official Channel](https://www.youtube.com/@PeppaPigOfficial) — 英國發音、5-10 分鐘短篇
+- [Bluey - Official Channel](https://www.youtube.com/@Bluey_Official) — 澳洲發音、家庭主題
+- [Maisy Mouse Official](https://www.youtube.com/@MaisyMouseOfficial) — 慢速清楚、適合初學
+- [Charlie and Lola](https://www.youtube.com/results?search_query=Charlie+and+Lola+full+episodes) — 兄妹日常故事
+
+**教學類**
+- [Alphablocks](https://www.youtube.com/@Alphablocks) — BBC 製作，自然發音法
+- [Numberblocks](https://www.youtube.com/@Numberblocks) — 數字 + 英文
+- [Gracie's Corner](https://www.youtube.com/@GraciesCorner) — 字母、顏色、形狀
+
+**避免的頻道類型**
+- ⚠️ 標題有 "kids reaction" "shocking" 的頻道
+- ⚠️ Elsa、Spiderman 真人 cosplay 影片（有不當內容假冒兒童影片）
+- ⚠️ 自動播放推薦的「toy unboxing」開箱頻道（很多有隱藏廣告）
+
 ### 偷懶法：用 AI 幫你出題
 
 把 `levels.json` 或 `videos.json` 貼給 ChatGPT 或 Claude 說「幫我加 5 部關於恐龍的影片」，AI 會生成 JSON，貼回去就好。
